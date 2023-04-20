@@ -12,13 +12,6 @@ jobs:
       with:
         go-version: '1.20'
       id: go
-      
-    - uses: google-github-actions/setup-gcloud@v0
-      with:
-        version: '285.0.0'
-        service_account_key: ${{ secrets.GCS_SA_KEY }}
-        export_default_credentials: true
-    - run: gcloud info
 
     - name: Set up QEMU
       id: qemu
@@ -42,13 +35,11 @@ jobs:
         username: '_json_key'
         password: '${{ secrets.GCR_SA_KEY }}'
 
-    # Push image to GCR to facilitate some environments that have rate limitation to docker hub, e.g. vSphere.
-    - name: Publish container image to GCR
+    # Only try to publish the container image from the root repo; forks don't have permission to do so and will always get failures.
+    - name: Publish container image
       run: |
-        sudo swapoff -a
-        sudo rm -f /mnt/swapfile
-        docker image prune -a --force
-        REGISTRY=gcr.io/velero-gcp ./hack/docker-push.sh
+        docker login -u ${{ secrets.DOCKER_USER }} -p ${{ secrets.DOCKER_PASSWORD }}
+        REGISTRY=blackpiglet ./hack/docker-push.sh
 
     - name: Make ci
       run: make ci
